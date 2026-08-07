@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>北京地铁票价计算器</title>
+    <style>
+        :root {
+            --bg: #f5f5f5;
+            --card-bg: #ffffff;
+            --text: #1a1a1a;
+            --text-secondary: #666;
+            --border: #e0e0e0;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --danger: #dc2626;
+            --danger-bg: #fef2f2;
+            --success: #16a34a;
+            --success-bg: #f0fdf4;
+            --warning: #ea580c;
+            --warning-bg: #fff7ed;
+            --tier-none: #94a3b8;
+            --tier-20: #3b82f6;
+            --tier-50: #22c55e;
+            --tier-cap: #ef4444;
+            --radius: 12px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 24px 16px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 8px 0;
+        }
+        .header .icon { font-size: 40px; margin-bottom: 4px; }
+        .header h1 { font-size: 22px; font-weight: 700; }
+        .header .subtitle { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+
+        /* Language switcher */
+        .lang-switcher {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin-top: 10px;
+        }
+        .lang-btn {
+            padding: 4px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 99px;
+            background: var(--card-bg);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .lang-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .lang-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 20px;
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .card-title .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+
+        /* Form elements */
+        .form-group { margin-bottom: 14px; }
+        .form-group:last-child { margin-bottom: 0; }
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        input[type="date"],
+        input[type="number"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: inherit;
+            background: var(--bg);
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input[type="date"]:focus,
+        input[type="number"]:focus { border-color: var(--accent); }
+
+        .input-wrapper { position: relative; }
+        .input-wrapper input { padding-right: 40px; }
+        .input-wrapper .suffix {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+            color: var(--text-secondary);
+            pointer-events: none;
+        }
+
+        .radio-group { display: flex; gap: 8px; }
+        .radio-card { flex: 1; position: relative; }
+        .radio-card input { display: none; }
+        .radio-card label {
+            display: block;
+            text-align: center;
+            padding: 10px 8px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .radio-card input:checked + label {
+            border-color: var(--accent);
+            background: #eff6ff;
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .radio-card label:hover { background: #f8fafc; }
+
+        /* Toggle switch */
+        .toggle-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+        }
+        .toggle-label-text { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+        .toggle-label-text small { font-weight: 400; }
+        .toggle-switch {
+            position: relative;
+            width: 48px; height: 26px; flex-shrink: 0;
+        }
+        .toggle-switch input { display: none; }
+        .toggle-slider {
+            position: absolute; inset: 0;
+            background: #d1d5db; border-radius: 26px;
+            cursor: pointer; transition: background 0.25s;
+        }
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 20px; height: 20px;
+            left: 3px; top: 3px;
+            background: #fff; border-radius: 50%;
+            transition: transform 0.25s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+        .toggle-switch input:checked + .toggle-slider::before { transform: translateX(22px); }
+
+        /* Sub option (indented) */
+        .sub-option {
+            margin-left: 16px;
+            padding: 8px 0;
+            border-left: 2px solid var(--border);
+            padding-left: 12px;
+            transition: all 0.3s;
+        }
+        .sub-option.hidden { display: none; }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: var(--accent);
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 4px;
+        }
+        button:hover { background: var(--accent-hover); }
+        button:active { transform: scale(0.98); }
+
+        /* Info note */
+        .info-note {
+            font-size: 11px;
+            color: var(--warning);
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Results */
+        .error-box {
+            background: var(--danger-bg);
+            border: 1px solid #fecaca;
+            color: var(--danger);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .result-hidden { display: none; }
+
+        /* Tier badge */
+        .tier-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 99px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #fff;
+        }
+        .tier-none { background: var(--tier-none); }
+        .tier-20  { background: var(--tier-20); }
+        .tier-50  { background: var(--tier-50); }
+        .tier-cap { background: var(--tier-cap); }
+
+        /* Trip detail rows */
+        .trip-rows { margin-top: 10px; }
+        .trip-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+        .trip-row:last-child { border-bottom: none; }
+        .trip-row.total {
+            font-weight: 700; font-size: 15px;
+            border-top: 2px solid var(--text);
+            border-bottom: none; margin-top: 4px; padding-top: 10px;
+        }
+        .trip-price { font-weight: 600; }
+
+        /* Cumulative bar */
+        .progress-bar-bg {
+            width: 100%; height: 8px;
+            background: var(--border); border-radius: 4px;
+            margin-top: 10px; overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%; border-radius: 4px;
+            background: var(--accent);
+            transition: width 0.4s ease;
+        }
+        .cumulative-info {
+            display: flex; justify-content: space-between;
+            font-size: 12px; color: var(--text-secondary); margin-top: 4px;
+        }
+
+        /* Discount estimation */
+        .est-section {
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+        }
+        .est-title {
+            font-size: 13px; font-weight: 600;
+            margin-bottom: 10px;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .est-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 8px 0;
+            font-size: 13px;
+        }
+        .est-row .est-label { font-weight: 500; min-width: 80px; }
+        .est-row .est-bar-wrap {
+            flex: 1; margin: 0 10px;
+            height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;
+        }
+        .est-row .est-bar-fill {
+            height: 100%; border-radius: 3px; transition: width 0.4s;
+        }
+        .est-row .est-bar-fill.eight { background: var(--tier-20); }
+        .est-row .est-bar-fill.fifty { background: var(--tier-50); }
+        .est-row .est-value {
+            font-weight: 600; font-size: 12px; min-width: 90px; text-align: right;
+        }
+        .est-reached { color: var(--success); }
+        .est-unreachable { color: var(--warning); }
+
+        /* Threshold markers */
+        .thresholds {
+            display: flex; justify-content: space-between;
+            font-size: 11px; color: var(--text-secondary);
+            margin-top: 12px; padding-top: 8px;
+            border-top: 1px solid var(--border);
+        }
+        .threshold-item { text-align: center; }
+        .threshold-item .th-label { font-weight: 500; }
+        .threshold-item .th-desc  { font-size: 10px; }
+
+        /* Footer note */
+        .footer-note {
+            font-size: 11px; color: var(--text-secondary);
+            text-align: center; line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- Header -->
+    <div class="header">
+        <div class="icon">🚇</div>
+        <h1 data-i18n="title">地铁票价计算器</h1>
+        <p class="subtitle" data-i18n="subtitle">按自然月累计消费 · 月底清零</p>
+        <div class="lang-switcher">
+            <button class="lang-btn" data-lang="zh-CN">🇨🇳 简</button>
+            <button class="lang-btn active" data-lang="zh-TW">🇹🇼 繁</button>
+            <button class="lang-btn" data-lang="en">🇺🇸 EN</button>
+        </div>
+    </div>
+
+    <!-- Input Card -->
+    <div class="card">
+        <div class="card-title"><span class="dot"></span><span data-i18n="inputTitle">输入信息</span></div>
+
+        <div class="form-group">
+            <label class="form-label" for="priceInput" data-i18n="priceLabel">💵 单程全价票价</label>
+            <div class="input-wrapper">
+                <input type="number" id="priceInput" value="7.00" step="0.5" min="1" max="100" placeholder="默认 7.00 元">
+                <span class="suffix" data-i18n="yuan">元</span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="dateInput" data-i18n="dateLabel">📅 乘车日期</label>
+            <input type="date" id="dateInput">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" data-i18n="modeLabel">🔄 每日乘车模式</label>
+            <div class="radio-group">
+                <div class="radio-card">
+                    <input type="radio" name="tripMode" id="mode-round" value="2" checked>
+                    <label for="mode-round">🚶‍➡️🚶‍⬅️ <span data-i18n="modeRound">往返</span><br><small data-i18n="modeRoundDesc">每天 2 次</small></label>
+                </div>
+                <div class="radio-card">
+                    <input type="radio" name="tripMode" id="mode-single" value="1">
+                    <label for="mode-single">🚶‍➡️ <span data-i18n="modeSingle">单程</span><br><small data-i18n="modeSingleDesc">每天 1 次</small></label>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="toggle-group">
+                <span class="toggle-label-text">
+                    <span data-i18n="excludeLabel">📅 排除法定休息日</span><br>
+                    <small style="color:var(--text-secondary);" data-i18n="excludeDesc">跳过周末及法定节假日</small>
+                </span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="excludeRestDays">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <!-- 调休 sub-option -->
+            <div class="sub-option hidden" id="makeupOption">
+                <div class="toggle-group" style="padding:4px 0;">
+                    <span class="toggle-label-text">
+                        <span data-i18n="makeupLabel">🔄 考虑调休上班日</span><br>
+                        <small style="color:var(--text-secondary);" data-i18n="makeupDesc">部分周末为调休工作日，按正常乘车计算</small>
+                    </span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="includeMakeup">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div id="restDayNote" class="info-note result-hidden"></div>
+        </div>
+
+        <button id="calcBtn" data-i18n="calcBtn">💰 计算票价</button>
+    </div>
+
+    <!-- Error -->
+    <div id="errorBox" class="error-box result-hidden"></div>
+
+    <!-- Results Card -->
+    <div id="resultCard" class="card result-hidden">
+        <div class="card-title"><span class="dot"></span><span data-i18n="resultTitle">计算结果</span></div>
+
+        <div class="trip-rows" id="tripRows"></div>
+
+        <!-- Cumulative -->
+        <div style="margin-top:14px;">
+            <div style="display:flex;justify-content:space-between;font-size:13px;">
+                <span data-i18n="cumulativeLabel">本月累计消费</span>
+                <span style="font-weight:700;" id="cumulativeValue">—</span>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+            </div>
+            <div class="cumulative-info">
+                <span id="cumulativeTrips">—</span>
+                <span id="capLabel" data-i18n="capLabel">¥400 封顶</span>
+            </div>
+        </div>
+
+        <!-- Current tier -->
+        <div style="margin-top:12px;text-align:center;" id="tierInfo"></div>
+
+        <!-- Discount estimation -->
+        <div class="est-section" id="estSection">
+            <div class="est-title" data-i18n="estTitle">🎯 优惠门槛预估</div>
+            <div id="estContent"></div>
+        </div>
+
+        <!-- Thresholds reference -->
+        <div class="thresholds" id="thresholdRef"></div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer-note" id="footerNote" data-i18n="footerText">
+        💡 假设从本月 1 日起每天乘车，按累计消费自动匹配优惠档次<br>
+        每自然月月底清零，下月重新计算<br>
+        <small style="color:var(--warning);">⚠️ 节假日数据仅供参考，以国务院发布为准；调休日期为预估</small>
+    </div>
+
+</div>
+
+<script>
+(function() {
+    // ═══════════════════════════════════════════════════════════
+    // DATA: Chinese Holidays & Makeup Workdays (2025–2026)
+    // ═══════════════════════════════════════════════════════════
+    const HOLIDAYS = new Set([
+        // 2025
+        '2025-01-01',
+        '2025-01-28','2025-01-29','2025-01-30','2025-01-31',
+        '2025-02-01','2025-02-02','2025-02-03','2025-02-04',
+        '2025-04-04','2025-04-05','2025-04-06',
+        '2025-05-01','2025-05-02','2025-05-03','2025-05-04','2025-05-05',
+        '2025-05-31','2025-06-01','2025-06-02',
+        '2025-10-01','2025-10-02','2025-10-03','2025-10-04',
+        '2025-10-05','2025-10-06','2025-10-07','2025-10-08',
+        // 2026 (projected)
+        '2026-01-01','2026-01-02','2026-01-03',
+        '2026-02-17','2026-02-18','2026-02-19','2026-02-20',
+        '2026-02-21','2026-02-22','2026-02-23',
+        '2026-04-05','2026-04-06','2026-04-07',
+        '2026-05-01','2026-05-02','2026-05-03','2026-05-04','2026-05-05',
+        '2026-06-19','2026-06-20','2026-06-21',
+        '2026-09-25','2026-09-26','2026-09-27',
+        '2026-10-01','2026-10-02','2026-10-03','2026-10-04',
+        '2026-10-05','2026-10-06','2026-10-07',
+    ]);
+
+    // 调休上班日（周末但需要上班的日期）
+    const MAKEUP_WORKDAYS = new Set([
+        // 2025
+        '2025-01-26', // Sun — 春节调休
+        '2025-02-08', // Sat — 春节调休
+        '2025-04-27', // Sun — 劳动节调休
+        '2025-09-28', // Sun — 国庆节调休
+        '2025-10-11', // Sat — 国庆节调休
+        // 2026 (projected)
+        '2026-02-14', // Sat — 春节调休
+        '2026-02-28', // Sat — 春节调休
+        '2026-04-26', // Sun — 劳动节调休
+        '2026-09-20', // Sun — 中秋节调休
+        '2026-10-10', // Sat — 国庆节调休
+    ]);
+
+    // ═══════════════════════════════════════════════════════════
+    // I18N
+    // ═══════════════════════════════════════════════════════════
+    const I18N = {
+        'zh-CN': {
+            title: '北京地铁票价计算器',
+            subtitle: '按自然月累计消费 · 月底清零',
+            inputTitle: '输入信息',
+            priceLabel: '💵 单程全价票价',
+            yuan: '元',
+            dateLabel: '📅 乘车日期',
+            modeLabel: '🔄 每日乘车模式',
+            modeRound: '往返',
+            modeRoundDesc: '每天 2 次',
+            modeSingle: '单程',
+            modeSingleDesc: '每天 1 次',
+            excludeLabel: '📅 排除法定休息日',
+            excludeDesc: '跳过周末及法定节假日',
+            makeupLabel: '🔄 考虑调休上班日',
+            makeupDesc: '部分周末为调休工作日，按正常乘车计算',
+            calcBtn: '💰 计算票价',
+            resultTitle: '计算结果',
+            cumulativeLabel: '本月累计消费',
+            cumulativeShort: '累计',
+            capLabel: '¥400 封顶',
+            estTitle: '🎯 优惠门槛预估',
+            estEightLabel: '八折 (满¥100)',
+            estFiftyLabel: '五折 (满¥150)',
+            estReached: '✅ 已达标',
+            estDays: '还需 {days} 天',
+            estNotReachable: '⚠️ 本月无法达到',
+            estAtTier: '当前处于 {tier} 优惠',
+            tierNone: '无优惠',
+            tier20: '八折优惠',
+            tier50: '五折优惠',
+            tierCap: '恢复全价',
+            tierNoneLong: '无优惠 · 全价 {price} 元',
+            tier20Long: '八折优惠 · {price} 元/次',
+            tier50Long: '五折优惠 · {price} 元/次',
+            tierCapLong: '已满 400 元 · 恢复全价 {price} 元',
+            tierShortNone: '全价',
+            tierShort20: '八折',
+            tierShort50: '五折',
+            tierShortCap: '全价',
+            tierCurrent: '当前：',
+            tripGo: '去程',
+            tripReturn: '返程',
+            tripSingle: '单程',
+            tripNth: '第{n}程',
+            dailyRoundTotal: '当日往返合计',
+            dailySingleTotal: '当日单程合计',
+            tripsCount: '本月共 {days} 天 · {trips} 次乘车',
+            tripsCountSkipped: '本月工作日 {days} 天 · {trips} 次乘车（已跳过 {skipped} 个休息日）',
+            tripsCountMakeup: '本月工作日 {days} 天 · {trips} 次乘车（含 {makeup} 个调休日，跳过 {skipped} 个休息日）',
+            footerText: '💡 假设从本月 1 日起每天乘车，按累计消费自动匹配优惠档次<br>每自然月月底清零，下月重新计算<br><small style="color:var(--warning);">⚠️ 节假日数据仅供参考，以国务院发布为准；调休日期为预估</small>',
+            errNoDate: '请输入乘车日期',
+            errDateFormat: '日期格式不正确，请使用 YYYY-MM-DD 格式',
+            errInvalidNum: '日期包含无效数字',
+            errMonthRange: '月份必须在 1–12 之间',
+            errDayRange: '{year}年{month}月只有 {maxDay} 天，无法计算 {day}日',
+            errAllRest: '{date} 是休息日且已开启排除功能，本月无有效乘车日。请关闭排除休息日选项或选择工作日。',
+            errPricePositive: '单程票价必须大于 0',
+            restWeekend: '⚠️ {date} 是周末，当日不计入乘车日',
+            restHoliday: '⚠️ {date} 是法定节假日，当日不计入乘车日',
+            restBoth: '⚠️ {date} 既是周末也是法定假日，当日不计入乘车日',
+            restMakeupNote: '（已开启调休，部分周末可能按工作日计算）',
+            thNone: '全价 {price} 元',
+            th20: '八折 {price} 元',
+            th50: '五折 {price} 元',
+            thCap: '恢复全价 {price} 元',
+        },
+        'zh-TW': {
+            title: '北京地鐵票價計算器',
+            subtitle: '按自然月累計消費 · 月底清零',
+            inputTitle: '輸入資訊',
+            priceLabel: '💵 單程全價票價',
+            yuan: '元',
+            dateLabel: '📅 乘車日期',
+            modeLabel: '🔄 每日乘車模式',
+            modeRound: '往返',
+            modeRoundDesc: '每天 2 次',
+            modeSingle: '單程',
+            modeSingleDesc: '每天 1 次',
+            excludeLabel: '📅 排除法定休息日',
+            excludeDesc: '跳過週末及法定節假日',
+            makeupLabel: '🔄 考慮調休上班日',
+            makeupDesc: '部分週末為調休工作日，按正常乘車計算',
+            calcBtn: '💰 計算票價',
+            resultTitle: '計算結果',
+            cumulativeLabel: '本月累計消費',
+            cumulativeShort: '累計',
+            capLabel: '¥400 封頂',
+            estTitle: '🎯 優惠門檻預估',
+            estEightLabel: '八折 (滿¥100)',
+            estFiftyLabel: '五折 (滿¥150)',
+            estReached: '✅ 已達標',
+            estDays: '還需 {days} 天',
+            estNotReachable: '⚠️ 本月無法達到',
+            estAtTier: '目前處於 {tier} 優惠',
+            tierNone: '無優惠',
+            tier20: '八折優惠',
+            tier50: '五折優惠',
+            tierCap: '恢復全價',
+            tierNoneLong: '無優惠 · 全價 {price} 元',
+            tier20Long: '八折優惠 · {price} 元/次',
+            tier50Long: '五折優惠 · {price} 元/次',
+            tierCapLong: '已滿 400 元 · 恢復全價 {price} 元',
+            tierShortNone: '全價',
+            tierShort20: '八折',
+            tierShort50: '五折',
+            tierShortCap: '全價',
+            tierCurrent: '目前：',
+            tripGo: '去程',
+            tripReturn: '返程',
+            tripSingle: '單程',
+            tripNth: '第{n}程',
+            dailyRoundTotal: '當日往返合計',
+            dailySingleTotal: '當日單程合計',
+            tripsCount: '本月共 {days} 天 · {trips} 次乘車',
+            tripsCountSkipped: '本月工作日 {days} 天 · {trips} 次乘車（已跳過 {skipped} 個休息日）',
+            tripsCountMakeup: '本月工作日 {days} 天 · {trips} 次乘車（含 {makeup} 個調休日，跳過 {skipped} 個休息日）',
+            footerText: '💡 假設從本月 1 日起每天乘車，按累計消費自動匹配優惠檔次<br>每自然月月底清零，下月重新計算<br><small style="color:var(--warning);">⚠️ 節假日資料僅供參考，以國務院發布為準；調休日期為預估</small>',
+            errNoDate: '請輸入乘車日期',
+            errDateFormat: '日期格式不正確，請使用 YYYY-MM-DD 格式',
+            errInvalidNum: '日期包含無效數字',
+            errMonthRange: '月份必須在 1–12 之間',
+            errDayRange: '{year}年{month}月只有 {maxDay} 天，無法計算 {day}日',
+            errAllRest: '{date} 是休息日且已開啟排除功能，本月無有效乘車日。請關閉排除休息日選項或選擇工作日。',
+            errPricePositive: '單程票價必須大於 0',
+            restWeekend: '⚠️ {date} 是週末，當日不計入乘車日',
+            restHoliday: '⚠️ {date} 是法定節假日，當日不計入乘車日',
+            restBoth: '⚠️ {date} 既是週末也是法定假日，當日不計入乘車日',
+            restMakeupNote: '（已開啟調休，部分週末可能按工作日計算）',
+            thNone: '全價 {price} 元',
+            th20: '八折 {price} 元',
+            th50: '五折 {price} 元',
+            thCap: '恢復全價 {price} 元',
+        },
+        'en': {
+            title: 'Beijing Subway Fare Calculator',
+            subtitle: 'Monthly cumulative spending · Resets at month end',
+            inputTitle: 'Information',
+            priceLabel: '💵 Single Trip Full Fare',
+            yuan: 'CNY',
+            dateLabel: '📅 Travel Date',
+            modeLabel: '🔄 Daily Trip Mode',
+            modeRound: 'Round Trip',
+            modeRoundDesc: '2 trips/day',
+            modeSingle: 'One Way',
+            modeSingleDesc: '1 trip/day',
+            excludeLabel: '📅 Exclude Rest Days',
+            excludeDesc: 'Skip weekends & public holidays',
+            makeupLabel: '🔄 Include Makeup Workdays',
+            makeupDesc: 'Some weekends are makeup workdays, count as regular',
+            calcBtn: '💰 Calculate Fare',
+            resultTitle: 'Results',
+            cumulativeLabel: 'Monthly Cumulative',
+            cumulativeShort: 'Cum.',
+            capLabel: '¥400 Cap',
+            estTitle: '🎯 Discount Threshold Estimate',
+            estEightLabel: '20% Off (at ¥100)',
+            estFiftyLabel: '50% Off (at ¥150)',
+            estReached: '✅ Reached',
+            estDays: '{days} day(s) left',
+            estNotReachable: '⚠️ Not reachable this month',
+            estAtTier: 'Currently at {tier} discount',
+            tierNone: 'No Discount',
+            tier20: '20% Off',
+            tier50: '50% Off',
+            tierCap: 'Back to Full',
+            tierNoneLong: 'No Discount · Full price ¥{price}',
+            tier20Long: '20% Off · ¥{price}/trip',
+            tier50Long: '50% Off · ¥{price}/trip',
+            tierCapLong: '¥400 Cap Reached · Full price ¥{price}',
+            tierShortNone: 'Full',
+            tierShort20: '20% Off',
+            tierShort50: '50% Off',
+            tierShortCap: 'Full',
+            tierCurrent: 'Current: ',
+            tripGo: 'To Work',
+            tripReturn: 'Return',
+            tripSingle: 'One Way',
+            tripNth: 'Trip #{n}',
+            dailyRoundTotal: 'Daily Round Trip Total',
+            dailySingleTotal: 'Daily One Way Total',
+            tripsCount: '{days} days · {trips} trips this month',
+            tripsCountSkipped: '{days} workdays · {trips} trips ({skipped} rest days skipped)',
+            tripsCountMakeup: '{days} workdays · {trips} trips ({makeup} makeup, {skipped} rest skipped)',
+            footerText: '💡 Assumes daily rides from the 1st. Discount tier matches cumulative spending.<br>Resets at the end of each calendar month.<br><small style="color:var(--warning);">⚠️ Holiday data for reference only. Makeup workday dates are estimates.</small>',
+            errNoDate: 'Please enter a travel date',
+            errDateFormat: 'Invalid date format. Use YYYY-MM-DD',
+            errInvalidNum: 'Date contains invalid numbers',
+            errMonthRange: 'Month must be between 1–12',
+            errDayRange: '{monthName} {year} has only {maxDay} days, cannot compute day {day}',
+            errAllRest: '{date} is a rest day with exclusion enabled. No valid travel days this month. Disable exclusion or pick a workday.',
+            errPricePositive: 'Single trip fare must be greater than 0',
+            restWeekend: '⚠️ {date} is a weekend — not counted as a travel day',
+            restHoliday: '⚠️ {date} is a public holiday — not counted as a travel day',
+            restBoth: '⚠️ {date} is both a weekend and holiday — not counted',
+            restMakeupNote: ' (Makeup workdays enabled — some weekends may be counted)',
+            thNone: 'Full ¥{price}',
+            th20: '20% Off ¥{price}',
+            th50: '50% Off ¥{price}',
+            thCap: 'Full ¥{price}',
+        }
+    };
+
+    // English month names for error messages
+    const EN_MONTHS = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
+
+    let currentLang = 'zh-TW';
+    let lastResult = null; // stored for re-render on language switch
+
+    function t(key) {
+        return I18N[currentLang]?.[key] ?? I18N['zh-CN']?.[key] ?? key;
+    }
+
+    function tt(key, replacements) {
+        let text = t(key);
+        if (replacements) {
+            for (const [k, v] of Object.entries(replacements)) {
+                text = text.replace(`{${k}}`, v);
+            }
+        }
+        return text;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // CONSTANTS
+    // ═══════════════════════════════════════════════════════════
+    const TIER_20_THRESHOLD = 100;
+    const TIER_50_THRESHOLD = 150;
+    const CAP_THRESHOLD    = 400;
+
+    // ═══════════════════════════════════════════════════════════
+    // DOM REFS
+    // ═══════════════════════════════════════════════════════════
+    const priceInput       = document.getElementById('priceInput');
+    const dateInput        = document.getElementById('dateInput');
+    const excludeCheckbox  = document.getElementById('excludeRestDays');
+    const makeupCheckbox   = document.getElementById('includeMakeup');
+    const makeupOption     = document.getElementById('makeupOption');
+    const restDayNote      = document.getElementById('restDayNote');
+    const calcBtn          = document.getElementById('calcBtn');
+    const errorBox         = document.getElementById('errorBox');
+    const resultCard       = document.getElementById('resultCard');
+    const tripRows         = document.getElementById('tripRows');
+    const cumulativeValue  = document.getElementById('cumulativeValue');
+    const progressBar      = document.getElementById('progressBar');
+    const cumulativeTrips  = document.getElementById('cumulativeTrips');
+    const capLabel         = document.getElementById('capLabel');
+    const tierInfo         = document.getElementById('tierInfo');
+    const thresholdRef     = document.getElementById('thresholdRef');
+    const footerNote       = document.getElementById('footerNote');
+    const estContent       = document.getElementById('estContent');
+
+    // ═══════════════════════════════════════════════════════════
+    // INIT DATE
+    // ═══════════════════════════════════════════════════════════
+    const today = new Date();
+    dateInput.value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+    // ═══════════════════════════════════════════════════════════
+    // HELPERS
+    // ═══════════════════════════════════════════════════════════
+    function daysInMonth(year, month) {
+        return new Date(year, month, 0).getDate();
+    }
+
+    function getBasePrice() {
+        const val = parseFloat(priceInput.value);
+        return (isNaN(val) || val <= 0) ? 7.0 : val;
+    }
+
+    function getDiscountPrices() {
+        const base = getBasePrice();
+        return {
+            base: base,
+            discount20: +(base * 0.8).toFixed(2),
+            discount50: +(base * 0.5).toFixed(2),
+        };
+    }
+
+    function getPriceForCumulative(cum, basePrice) {
+        if (cum < TIER_20_THRESHOLD) return { price: basePrice, tier: 'none' };
+        if (cum < TIER_50_THRESHOLD) return { price: +(basePrice * 0.8).toFixed(2), tier: '20' };
+        if (cum < CAP_THRESHOLD)     return { price: +(basePrice * 0.5).toFixed(2), tier: '50' };
+        return { price: basePrice, tier: 'cap' };
+    }
+
+    function getPrice(cumulativeBefore) {
+        return getPriceForCumulative(cumulativeBefore, getBasePrice());
+    }
+
+    function tierBadgeClass(tier) {
+        return 'tier-' + tier;
+    }
+
+    function isWeekend(year, month, day) {
+        const dow = new Date(year, month - 1, day).getDay();
+        return dow === 0 || dow === 6;
+    }
+
+    function isHoliday(year, month, day) {
+        const key = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        return HOLIDAYS.has(key);
+    }
+
+    function isMakeupWorkday(year, month, day) {
+        const key = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        return MAKEUP_WORKDAYS.has(key);
+    }
+
+    // A day is a "travel day" if: it's NOT a holiday AND (it's a weekday OR it's a makeup workday)
+    function isTravelDay(year, month, day, excludeRest, includeMakeup) {
+        if (!excludeRest) return true; // not filtering — every day counts
+        if (isHoliday(year, month, day)) return false; // holidays always off
+        if (!isWeekend(year, month, day)) return true; // weekday — always travel
+        // It's a weekend — check if it's a makeup workday
+        return includeMakeup && isMakeupWorkday(year, month, day);
+    }
+
+    function formatDate(year, month, day) {
+        if (currentLang === 'en') {
+            return `${EN_MONTHS[month]} ${day}, ${year}`;
+        }
+        return `${year}年${month}月${day}日`;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // LANGUAGE
+    // ═══════════════════════════════════════════════════════════
+    function applyLanguage() {
+        // Update all data-i18n elements
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (key === 'footerText') {
+                el.innerHTML = t(key);
+            } else {
+                el.textContent = t(key);
+            }
+        });
+
+        // Update lang buttons
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-lang') === currentLang);
+        });
+
+        // Update document lang
+        document.documentElement.lang = currentLang;
+
+        // Re-render if we have a stored result
+        if (lastResult) {
+            renderResults(lastResult);
+            updateThresholdRef();
+        }
+
+        // Update rest day note if visible
+        if (!restDayNote.classList.contains('result-hidden')) {
+            checkRestDayNote();
+        } else {
+            // still update cap label and other static text
+            capLabel.textContent = t('capLabel');
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // THRESHOLD REFERENCE
+    // ═══════════════════════════════════════════════════════════
+    function updateThresholdRef() {
+        const prices = getDiscountPrices();
+        thresholdRef.innerHTML = `
+            <div class="threshold-item">
+                <div class="th-label">¥0 – ¥100</div>
+                <div class="th-desc">${tt('thNone', {price: prices.base.toFixed(2)})}</div>
+            </div>
+            <div class="threshold-item">
+                <div class="th-label">¥100 – ¥150</div>
+                <div class="th-desc">${tt('th20', {price: prices.discount20.toFixed(2)})}</div>
+            </div>
+            <div class="threshold-item">
+                <div class="th-label">¥150 – ¥400</div>
+                <div class="th-desc">${tt('th50', {price: prices.discount50.toFixed(2)})}</div>
+            </div>
+            <div class="threshold-item">
+                <div class="th-label">¥400 +</div>
+                <div class="th-desc">${tt('thCap', {price: prices.base.toFixed(2)})}</div>
+            </div>`;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // REST DAY NOTE
+    // ═══════════════════════════════════════════════════════════
+    function checkRestDayNote() {
+        if (!excludeCheckbox.checked) {
+            restDayNote.classList.add('result-hidden');
+            return;
+        }
+        const dateStr = dateInput.value;
+        if (!dateStr) return;
+        const parts = dateStr.split('-');
+        if (parts.length !== 3) return;
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10);
+        const day = parseInt(parts[2], 10);
+        if (isNaN(year) || isNaN(month) || isNaN(day)) return;
+
+        const fmt = formatDate(year, month, day);
+        let msg = '';
+
+        if (isWeekend(year, month, day) && isHoliday(year, month, day)) {
+            msg = tt('restBoth', {date: fmt});
+        } else if (isWeekend(year, month, day)) {
+            // Check if it's a makeup workday
+            if (makeupCheckbox.checked && isMakeupWorkday(year, month, day)) {
+                restDayNote.classList.add('result-hidden');
+                return;
+            }
+            msg = tt('restWeekend', {date: fmt});
+        } else if (isHoliday(year, month, day)) {
+            msg = tt('restHoliday', {date: fmt});
+        } else {
+            restDayNote.classList.add('result-hidden');
+            return;
+        }
+
+        if (makeupCheckbox.checked) {
+            msg += ' ' + t('restMakeupNote');
+        }
+        restDayNote.innerHTML = msg;
+        restDayNote.classList.remove('result-hidden');
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // FORWARD SIMULATION (for discount estimation)
+    // ═══════════════════════════════════════════════════════════
+    function simulateDaysToThreshold(startCumulative, basePrice, tripsPerDay, targetThreshold,
+                                     excludeRest, includeMakeup, year, month, fromDay) {
+        let cum = startCumulative;
+        let days = 0;
+        let makeupCount = 0;
+        const maxDay = daysInMonth(year, month);
+
+        for (let d = fromDay + 1; d <= maxDay; d++) {
+            // Check if this day counts
+            if (!isTravelDay(year, month, d, excludeRest, includeMakeup)) continue;
+
+            days++;
+            if (includeMakeup && excludeRest && isWeekend(year, month, d) && isMakeupWorkday(year, month, d)) {
+                makeupCount++;
+            }
+
+            for (let t = 0; t < tripsPerDay; t++) {
+                const { price } = getPriceForCumulative(cum, basePrice);
+                cum += price;
+            }
+
+            if (cum >= targetThreshold) {
+                return { days, cumulative: cum, reached: true, makeupCount };
+            }
+        }
+
+        return { days, cumulative: cum, reached: false, makeupCount };
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // MAIN CALCULATION
+    // ═══════════════════════════════════════════════════════════
+    function calculate() {
+        errorBox.classList.add('result-hidden');
+        resultCard.classList.add('result-hidden');
+
+        const basePrice = getBasePrice();
+        const dateStr = dateInput.value.trim();
+        const tripsPerDay = parseInt(document.querySelector('input[name="tripMode"]:checked').value, 10);
+        const excludeRest = excludeCheckbox.checked;
+        const includeMakeup = excludeRest && makeupCheckbox.checked;
+
+        if (basePrice <= 0) { showError(t('errPricePositive')); return; }
+        if (!dateStr) { showError(t('errNoDate')); return; }
+
+        const parts = dateStr.split('-');
+        if (parts.length !== 3) { showError(t('errDateFormat')); return; }
+
+        const year  = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10);
+        const day   = parseInt(parts[2], 10);
+
+        if (isNaN(year) || isNaN(month) || isNaN(day)) { showError(t('errInvalidNum')); return; }
+        if (month < 1 || month > 12) { showError(t('errMonthRange')); return; }
+
+        const maxDay = daysInMonth(year, month);
+        if (day < 1 || day > maxDay) {
+            showError(tt('errDayRange', {year, month, maxDay, day, monthName: EN_MONTHS[month]}));
+            return;
+        }
+
+        checkRestDayNote();
+
+        // Simulate from day 1
+        let cumulative = 0;
+        let workDays = 0;
+        let skippedDays = 0;
+        let makeupDayCount = 0;
+        const todayTripDetails = [];
+
+        for (let d = 1; d <= day; d++) {
+            if (!isTravelDay(year, month, d, excludeRest, includeMakeup)) {
+                skippedDays++;
+                continue;
+            }
+            workDays++;
+            if (includeMakeup && isWeekend(year, month, d) && isMakeupWorkday(year, month, d)) {
+                makeupDayCount++;
+            }
+
+            for (let t = 0; t < tripsPerDay; t++) {
+                const { price, tier } = getPrice(cumulative);
+                if (d === day) {
+                    todayTripDetails.push({ tripNum: t + 1, price, tier, cumulativeBefore: cumulative });
+                }
+                cumulative += price;
+            }
+        }
+
+        if (workDays === 0) {
+            showError(tt('errAllRest', {date: formatDate(year, month, day)}));
+            return;
+        }
+
+        const currentTier = todayTripDetails.length > 0
+            ? todayTripDetails[0].tier
+            : getPrice(cumulative).tier;
+        const todayTotal = todayTripDetails.reduce((s, t) => s + t.price, 0);
+
+        // Forward simulation for discount estimation
+        const estToEight = simulateDaysToThreshold(cumulative, basePrice, tripsPerDay, TIER_20_THRESHOLD,
+            excludeRest, includeMakeup, year, month, day);
+        const estToFifty = simulateDaysToThreshold(cumulative, basePrice, tripsPerDay, TIER_50_THRESHOLD,
+            excludeRest, includeMakeup, year, month, day);
+
+        lastResult = {
+            dateStr, year, month, day, tripsPerDay,
+            todayTripDetails, todayTotal, cumulative, currentTier, maxDay,
+            workDays, skippedDays, excludeRest, includeMakeup, makeupDayCount,
+            basePrice, estToEight, estToFifty,
+        };
+
+        renderResults(lastResult);
+        updateThresholdRef();
+    }
+
+    function renderResults(r) {
+        // Trip rows
+        const tripLabels = r.tripsPerDay === 2
+            ? [t('tripGo'), t('tripReturn')]
+            : [t('tripSingle')];
+
+        let tripHTML = '';
+        r.todayTripDetails.forEach(trip => {
+            const label = tripLabels[trip.tripNum - 1] || tt('tripNth', {n: trip.tripNum});
+            const tierKey = 'tierShort' + (trip.tier === 'none' ? 'None' : trip.tier === '20' ? '20' : trip.tier === '50' ? '50' : 'Cap');
+            tripHTML += `
+                <div class="trip-row">
+                    <span>🚇 ${label}</span>
+                    <span style="font-size:12px;color:var(--text-secondary);">
+                        (${t('cumulativeShort')} ¥${trip.cumulativeBefore.toFixed(2)} →
+                        <span class="tier-badge ${tierBadgeClass(trip.tier)}">${t(tierKey)}</span>)
+                    </span>
+                    <span class="trip-price">¥${trip.price.toFixed(2)}</span>
+                </div>`;
+        });
+
+        const totalLabel = r.tripsPerDay === 2 ? t('dailyRoundTotal') : t('dailySingleTotal');
+        tripHTML += `
+            <div class="trip-row total">
+                <span>📋 ${totalLabel}</span>
+                <span></span>
+                <span>¥${r.todayTotal.toFixed(2)}</span>
+            </div>`;
+        tripRows.innerHTML = tripHTML;
+
+        // Cumulative
+        cumulativeValue.textContent = `¥${r.cumulative.toFixed(2)}`;
+
+        // Trips count
+        const totalTrips = r.workDays * r.tripsPerDay;
+        if (r.excludeRest) {
+            if (r.includeMakeup && r.makeupDayCount > 0) {
+                cumulativeTrips.textContent = tt('tripsCountMakeup', {
+                    days: r.workDays, trips: totalTrips,
+                    makeup: r.makeupDayCount, skipped: r.skippedDays
+                });
+            } else {
+                cumulativeTrips.textContent = tt('tripsCountSkipped', {
+                    days: r.workDays, trips: totalTrips, skipped: r.skippedDays
+                });
+            }
+        } else {
+            cumulativeTrips.textContent = tt('tripsCount', {days: r.workDays, trips: totalTrips});
+        }
+
+        // Cap label
+        capLabel.textContent = t('capLabel');
+
+        // Progress bar
+        const pct = Math.min(100, (r.cumulative / CAP_THRESHOLD) * 100);
+        progressBar.style.width = `${pct}%`;
+        if (r.cumulative >= CAP_THRESHOLD) {
+            progressBar.style.background = 'var(--tier-cap)';
+        } else if (r.cumulative >= TIER_50_THRESHOLD) {
+            progressBar.style.background = 'var(--tier-50)';
+        } else if (r.cumulative >= TIER_20_THRESHOLD) {
+            progressBar.style.background = 'var(--tier-20)';
+        } else {
+            progressBar.style.background = 'var(--accent)';
+        }
+
+        // Tier info
+        const tierNames = {none:'None', '20':'20', '50':'50', cap:'Cap'};
+        const tierKey = 'tier' + tierNames[r.currentTier] + 'Long';
+        const tierPrice = getPrice(r.cumulative).price;
+        tierInfo.innerHTML = `
+            <span class="tier-badge ${tierBadgeClass(r.currentTier)}" style="font-size:14px;padding:6px 16px;">
+                ${t('tierCurrent')}${tt(tierKey, {price: tierPrice.toFixed(2)})}
+            </span>`;
+
+        // Discount estimation
+        renderDiscountEstimation(r);
+
+        resultCard.classList.remove('result-hidden');
+    }
+
+    function renderDiscountEstimation(r) {
+        let html = '';
+
+        // --- 20% off estimate ---
+        const estEightPct = Math.min(100, (r.cumulative / TIER_20_THRESHOLD) * 100);
+        if (r.cumulative >= TIER_20_THRESHOLD) {
+            html += `<div class="est-row">
+                <span class="est-label">${t('estEightLabel')}</span>
+                <div class="est-bar-wrap"><div class="est-bar-fill eight" style="width:100%"></div></div>
+                <span class="est-value est-reached">${t('estReached')}</span>
+            </div>`;
+        } else if (r.estToEight.reached) {
+            html += `<div class="est-row">
+                <span class="est-label">${t('estEightLabel')}</span>
+                <div class="est-bar-wrap"><div class="est-bar-fill eight" style="width:${estEightPct}%"></div></div>
+                <span class="est-value">${tt('estDays', {days: r.estToEight.days})}</span>
+            </div>`;
+        } else {
+            html += `<div class="est-row">
+                <span class="est-label">${t('estEightLabel')}</span>
+                <div class="est-bar-wrap"><div class="est-bar-fill eight" style="width:${estEightPct}%"></div></div>
+                <span class="est-value est-unreachable">${t('estNotReachable')}</span>
+            </div>`;
+        }
+
+        // --- 50% off estimate ---
+        const estFiftyPct = Math.min(100, (r.cumulative / TIER_50_THRESHOLD) * 100);
+        if (r.cumulative >= TIER_50_THRESHOLD) {
+            html += `<div class="est-row">
+                <span class="est-label">${t('estFiftyLabel')}</span>
+                <div class="est-bar-wrap"><div class="est-bar-fill fifty" style="width:100%"></div></div>
+                <span class="est-value est-reached">${t('estReached')}</span>
+            </div>`;
+        } else if (r.estToFifty.reached) {
+            html += `<div class="est-row">
+                <span class="est-label">${t('estFiftyLabel')}</span>
+                <div class="est-bar-wrap"><div class="est-bar-fill fifty" style="width:${estFiftyPct}%"></div></div>
+                <span class="est-value">${tt('estDays', {days: r.estToFifty.days})}</span>
+            </div>`;
+        } else {
+            html += `<div class="est-row">
+                <span class="est-label">${t('estFiftyLabel')}</span>
+                <div class="est-bar-wrap"><div class="est-bar-fill fifty" style="width:${estFiftyPct}%"></div></div>
+                <span class="est-value est-unreachable">${t('estNotReachable')}</span>
+            </div>`;
+        }
+
+        estContent.innerHTML = html;
+    }
+
+    function showError(msg) {
+        errorBox.textContent = '⚠️ ' + msg;
+        errorBox.classList.remove('result-hidden');
+        resultCard.classList.add('result-hidden');
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // EVENTS
+    // ═══════════════════════════════════════════════════════════
+
+    // Language switcher
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            currentLang = this.getAttribute('data-lang');
+            applyLanguage();
+        });
+    });
+
+    // Toggle makeup option visibility
+    excludeCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            makeupOption.classList.remove('hidden');
+        } else {
+            makeupOption.classList.add('hidden');
+            makeupCheckbox.checked = false;
+        }
+        checkRestDayNote();
+        calculate();
+    });
+
+    makeupCheckbox.addEventListener('change', function() {
+        checkRestDayNote();
+        calculate();
+    });
+
+    calcBtn.addEventListener('click', calculate);
+
+    dateInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') calculate();
+    });
+    priceInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') calculate();
+    });
+
+    priceInput.addEventListener('input', function() {
+        updateThresholdRef();
+        if (lastResult) calculate();
+    });
+
+    dateInput.addEventListener('change', function() {
+        checkRestDayNote();
+        calculate();
+    });
+
+    // Radio buttons
+    document.querySelectorAll('input[name="tripMode"]').forEach(radio => {
+        radio.addEventListener('change', calculate);
+    });
+
+    // ═══════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════
+    applyLanguage();
+    updateThresholdRef();
+    calculate();
+
+})();
+</script>
+</body>
+</html>

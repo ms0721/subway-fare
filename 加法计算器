@@ -1,0 +1,6 @@
+def add(a,b):
+    result = a + b
+    return result
+x = float(input("a=?"))
+y = float(input("b=?"))
+print(add(x,y))
